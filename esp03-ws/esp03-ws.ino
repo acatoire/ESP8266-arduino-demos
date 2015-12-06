@@ -2,8 +2,8 @@
 
 //http://www.arduinesp.com/wifiwebserver
 
-const char* ssid     = "Wifi_du_9_av_Ginette";
-const char* password = "bender le chat de ginette";
+const char* ssid     = "***";
+const char* password = "***";
  
 int ledPin = 2; // GPIO2
 WiFiServer server(80);

@@ -6,6 +6,16 @@ Tested on adafruit HUZZAH : https://learn.adafruit.com/adafruit-feather-huzzah-e
 With ARDUINO 1.6.6 with esp8266 1.6.5 package. 
 I actually have issue with version 2.0.0
 
+# Naming convention
+ *  espXX - Base number
+ *  wr    - Include a web request to get data from a website
+ *  ws    - Include a web server
+ *  ts    - use thingspeak.com
+ *  dht   - read temperature and humidity on a DHT sensor
+ *  tds   - read temperature on a DS18B20 sensor
+ *  tm    - use of os_timer capability
+ *  
+
 # Possibles bugs
 IF you encounter an error with __ieee754_sqrt :
 The issue is known here:

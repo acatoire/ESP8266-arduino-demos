@@ -1,7 +1,7 @@
 
 /*
  *  Simple HTTP get webclient test
- *  With DS18B20 temperature reading
+ *  With DHT22 temperature reading
  *
  *  Board detail : https://learn.adafruit.com/adafruit-feather-huzzah-esp8266/pinouts
  *  http://www.arduinesp.com/wifiwebserver
@@ -33,7 +33,7 @@ extern "C" {
 os_timer_t myTimer1;
 #define TIMER1 1000       //  1s for timer 1
 os_timer_t myTimer2;
-#define TIMER2 1000*60    // 60s for timer 2
+#define TIMER2 1000*5    // 60s for timer 2
 os_timer_t myTimer3;
 #define TIMER3 1000*60*15 //15mn for timer 3
 // boolean to activate timer events
@@ -50,27 +50,23 @@ void timerInit(os_timer_t *pTimerPointer, uint32_t milliSecondsValue, os_timer_f
 
 
 //Wifi config
-const char* ssid     = "Wifi_du_9_av_Ginette";
-const char* password = "bender le chat de ginette";
+const char* ssid     = "***";
+const char* password = "***";
 //Function declarations
 void wifiConnect(void);
 void webServerStart(void);
 void ClientAction (void);
 
 //Thingspeak config
-String myWriteAPIKey = "WNZU5QA99N5HMB4O";
+String myWriteAPIKey = "***";
 //Function declarations
 void thingSpeakWrite (String, float, float, float, float, float, float, float, float);
 
 //Sensors config
-#define ONE_WIRE_BUS 14  // One wire pin for DS18B20
-OneWire oneWire(ONE_WIRE_BUS);
-DallasTemperature DS18B20(&oneWire);
-//Function declarations
-void sensorRead(void);
+#define DHTPIN 12        // what pin we're connected to
+DHT dht(DHTPIN, DHT22,15);
 
-
-float temp;
+float temperature;
 float humidity;
 
 #define BLUE_LED  2 // GPIO2 also used by wifi chip
@@ -89,7 +85,7 @@ void setup() {
   Serial.begin(BAUDRATE);
   Serial.println("");
   Serial.println("--------------------------");
-  Serial.println("   ESP8266 Full Test      ");
+  Serial.println("    ESP8266 Full Test     ");
   Serial.println("--------------------------");
  
 
@@ -104,16 +100,16 @@ void setup() {
   //Init leds
   pinMode(BLUE_LED, OUTPUT);
   pinMode(RED_LED, OUTPUT);
-  digitalWrite(BLUE_LED, LOW);
-  digitalWrite(RED_LED, LOW);
+  digitalWrite(BLUE_LED, HIGH);
+  digitalWrite(RED_LED, HIGH);
 
   //Init wifi and web server
   wifiConnect();
   webServerStart();
+  WiFiClient client;
 
   //Init DHT temperature and Himidity reading
   dht.begin();
-  
 }
 
 
@@ -122,52 +118,42 @@ void setup() {
  *  
 */
 void loop() {
-
-
+  
   // Check if a client has connected
   // Priority to the client to be more responsive
-  WiFiClient client = server.available();
-  if (client) {
-    // Wait until the client sends some data
-    Serial.println("new client");
-    while(!client.available()){
-      delay(1);
-    }
-    ClientAction();
-  }
+  client = server.available();
+  ClientAction();
+  
 
   //Check if a timer occured to execute the action
   //Timer 1 action
   if (tick1Occured == true){
-    Serial.println("Tick 1s Occurred");
     tick1Occured = false;
-
-    //Toggle LED
-    digitalWrite(RED_LED, !digitalRead(RED_LED));
   }
   
   //Timer 2 action
   if (tick2Occured == true){
-    Serial.println("Tick 1min Occurred");
     tick2Occured = false;
     
+    //Toggle LED
+    digitalWrite(RED_LED, !digitalRead(RED_LED));
+    
     //Temperature and Humidity Reading
-    temp = dht.readHumidity();
-    humidity = dht.readTemperature();
-    thingSpeakWrite (myWriteAPIKey, temp, humidity, NAN, NAN, NAN, NAN, NAN, NAN);
+    humidity =    dht.readHumidity();
+    temperature = dht.readTemperature();
+    thingSpeakWrite (myWriteAPIKey, temperature, humidity, NAN, NAN, NAN, NAN, NAN, NAN);
 
-    Serial.print("Temperature DHT22 : ");
-    Serial.print(t);
-    Serial.print(" - Humidity: ");
-    Serial.print(h);
+    Serial.print("Temperature : ");
+    Serial.print(temperature);
+    Serial.print(" - Humidity : ");
+    Serial.println(humidity);
   }
   
   //Timer 3 action
   if (tick3Occured == true){
-    Serial.println("Tick 15m Occurred");
     tick3Occured = false;
   }
-  
+ 
   //Give th time to th os to do his things
   yield();  // or delay(0);
 }
@@ -272,27 +258,39 @@ void webServerStart(void){
   Serial.println("/");
 }
 
-void ClientAction (void)
-{
+
+void ClientAction() {
+  // Check if a client has connected
+  if (!client) {
+    return;
+  }
+ 
+  // Wait until the client sends some data
+  Serial.println("new client 2222222");
+  while(!client.available()){
+    delay(1);
+    Serial.print(".");
+  }
+ 
   // Read the first line of the request
   String request = client.readStringUntil('\r');
   Serial.println(request);
   client.flush();
  
-  // Match the request
- 
-  int value = LOW;
-  if (request.indexOf("/LED=ON") != -1)  {
-    digitalWrite(BLUE_LED, HIGH);
-    value = HIGH;
-  }
-  if (request.indexOf("/LED=OFF") != -1)  {
+
+  if (request.indexOf("/BLUE_LED=ON") != -1)  {
     digitalWrite(BLUE_LED, LOW);
-    value = LOW;
   }
- 
-// Set ledPin according to the request
-//digitalWrite(ledPin, value);
+  if (request.indexOf("/BLUE_LED=OFF") != -1)  {
+    digitalWrite(BLUE_LED, HIGH);
+  }
+
+  if (request.indexOf("/RED_LED=ON") != -1)  {
+    digitalWrite(RED_LED, LOW);
+  }
+  if (request.indexOf("/RED_LED=OFF") != -1)  {
+    digitalWrite(RED_LED, HIGH);
+  }
  
   // Return the response
   client.println("HTTP/1.1 200 OK");
@@ -300,26 +298,32 @@ void ClientAction (void)
   client.println(""); //  do not forget this one
   client.println("<!DOCTYPE HTML>");
   client.println("<html>");
- 
-  client.print("Led pin is now: ");
- 
-  if(value == HIGH) {
-    client.print("On");
+  client.println("<br><br>");
+  
+  client.print("Temperature : ");
+  client.print(temperature);
+  client.println(" C<br>");
+  client.print("Humidity : ");
+  client.print(humidity);
+  client.println(" %<br>");
+  
+  if(digitalRead(BLUE_LED)) { // HIGH is OFF
+    client.println("Click <a href=\"/BLUE_LED=ON\">here</a> turn ON the BLUE LED<br>");
   } else {
-    client.print("Off");
+    client.println("Click <a href=\"/BLUE_LED=OFF\">here</a> turn OFF the BLUE LED<br>");
+  }
+
+  if(digitalRead(RED_LED)) { // HIGH is OFF
+    client.println("Click <a href=\"/RED_LED=ON\">here</a> turn ON the RED LED<br>");
+  } else {
+    client.println("Click <a href=\"/RED_LED=OFF\">here</a> turn OFF the RED LED<br>");
   }
   client.println("<br><br>");
-  client.println("Click <a href=\"/LED=ON\">here</a> turn the LED on pin 2 ON<br>");
-  client.println("Click <a href=\"/LED=OFF\">here</a> turn the LED on pin 2 OFF<br>");
-  client.print("The temperature is ");
-  client.print(temp);
-  client.println("<br>");
   client.println("</html>");
  
   delay(1);
   Serial.println("Client disonnected");
   Serial.println("");
- 
 }
 
 

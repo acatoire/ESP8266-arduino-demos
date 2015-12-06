@@ -5,8 +5,8 @@
  //https://learn.adafruit.com/adafruit-feather-huzzah-esp8266/using-arduino-ide
 #include <ESP8266WiFi.h>
  
-const char* ssid     = "Wifi_du_9_av_Ginette";
-const char* password = "bender le chat de ginette";
+const char* ssid     = "***";
+const char* password = "***";
  
 const char* host = "www.adafruit.com";
  

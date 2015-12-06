@@ -24,14 +24,14 @@
 #define BAUDRATE 115200  // Serial link speed
 
 //Wifi config
-const char* ssid     = "Wifi_du_9_av_Ginette";
-const char* password = "bender le chat de ginette";
+const char* ssid     = "***";
+const char* password = "***";
 //Function declarations
 void wifiConnect(void);
 void ClientAction (void);
 
 //Thingspeak config
-String myWriteAPIKey = "WNZU5QA99N5HMB4O";
+String myWriteAPIKey = "***";
 //Function declarations
 void thingSpeakWrite (String, float, float, float, float, float, float, float, float);
                       
