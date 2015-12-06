@@ -14,7 +14,7 @@ I actually have issue with version 2.0.0
  *  dht   - read temperature and humidity on a DHT sensor
  *  tds   - read temperature on a DS18B20 sensor
  *  tm    - use of os_timer capability
- *  
+ *  ee    - use of EEPROM
 
 # Possibles bugs
 IF you encounter an error with __ieee754_sqrt :

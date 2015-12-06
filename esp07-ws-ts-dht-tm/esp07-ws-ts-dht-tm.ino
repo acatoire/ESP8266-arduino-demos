@@ -1,19 +1,18 @@
 
 /*
- *  Simple HTTP get webclient test
- *  With DHT22 temperature reading
- *
- *  Board detail : https://learn.adafruit.com/adafruit-feather-huzzah-esp8266/pinouts
- *  http://www.arduinesp.com/wifiwebserver
- *  http://iot-playground.com/2-uncategorised/41-esp8266-ds18b20-temperature-sensor-arduino-ide
- *
- *  Timer
- *  http://www.switchdoc.com/2015/10/iot-esp8266-timer-tutorial-arduino-ide/
+ *  Simple implementation of a web server showing information from DHT sensor and logging it on thingspeak
+ *  The use of timers allows to optimize it
  *  
- *  si ereur avec __ieee754_sqrt
- *  https://github.com/esp8266/Arduino/issues/612
- *  https://files.gitter.im/esp8266/Arduino/Abqa/libm.a.tbz replace the one in
- *  C:\Users\axel\AppData\Local\Arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\1.20.0-26-gb404fb9\xtensa-lx106-elf\lib
+ *  This program simply wait for the next client connexion, no timer, no fancy things
+ *
+ *  Developed from :
+ *    http://www.arduinesp.com/wifiwebserver
+ *    http://iot-playground.com/2-uncategorised/41-esp8266-ds18b20-temperature-sensor-arduino-ide
+ *    http://www.switchdoc.com/2015/10/iot-esp8266-timer-tutorial-arduino-ide/
+ *  Use the librairies
+ *  - DHT
+ *  - Timer in user_interface
+ *  
  */
 
 //Include credential files
@@ -50,7 +49,6 @@ const char tickId3=3;
 void timerCallback(void *);
 void timerInit(os_timer_t *pTimerPointer, uint32_t milliSecondsValue, os_timer_func_t *pFunction, char *pId);
 
-
 //Wifi config
 const char* ssid     = WIFI_SSID;
 const char* password = WIFI_PASS;
@@ -58,6 +56,9 @@ const char* password = WIFI_PASS;
 void wifiConnect(void);
 void webServerStart(void);
 void ClientAction (void);
+//Wifi Global variables
+WiFiServer server(80);
+WiFiClient client;
 
 //Thingspeak config
 String myWriteAPIKey = TS_WRITE_KEY;
@@ -73,8 +74,6 @@ float humidity;
 
 #define BLUE_LED  2 // GPIO2 also used by wifi chip
 #define RED_LED   0 // GPIO0
-WiFiServer server(80);
-WiFiClient client;
 
 
 /* void setup(void) 
@@ -108,7 +107,6 @@ void setup() {
   //Init wifi and web server
   wifiConnect();
   webServerStart();
-  WiFiClient client;
 
   //Init DHT temperature and Himidity reading
   dht.begin();
@@ -260,7 +258,12 @@ void webServerStart(void){
   Serial.println("/");
 }
 
-
+/* void ClientAction(void)
+ *  Function 
+ *  
+ *  Input  : 
+ *  Output :
+*/
 void ClientAction() {
   // Check if a client has connected
   if (!client) {
@@ -268,7 +271,7 @@ void ClientAction() {
   }
  
   // Wait until the client sends some data
-  Serial.println("new client 2222222");
+  Serial.println("new client");
   while(!client.available()){
     delay(1);
     Serial.print(".");
