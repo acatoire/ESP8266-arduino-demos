@@ -12,6 +12,10 @@
  *  
  */
 
+//Include credential files
+#include "wifi_log.h"
+#include "thingspeak_log.h"
+
 //Librairies include
 #include <ESP8266WiFi.h>
 #include <OneWire.h>
@@ -21,15 +25,15 @@
 #define BAUDRATE 115200  // Serial link speed
 
 //Wifi config
-const char* ssid     = "***";
-const char* password = "***";
+const char* ssid     = WIFI_SSID;
+const char* password = WIFI_PASS;
 WiFiClient client; // Global wifi client
 //Wifi Function declarations
 void wifiConnect(void);
 void ClientAction (void);
 
 //Thingspeak config
-String myWriteAPIKey = "***";
+String myWriteAPIKey = TS_WRITE_KEY;
 //Thingspeak Function declarations
 void thingSpeakWrite (String, float, float, float, float, float, float, float, float);
                       

@@ -16,9 +16,11 @@
  *  C:\Users\axel\AppData\Local\Arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\1.20.0-26-gb404fb9\xtensa-lx106-elf\lib
  */
 
+//Include credential files
+#include "wifi_log.h"
+#include "thingspeak_log.h"
+
 #include <ESP8266WiFi.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
 #include <DHT.h>
 
 extern "C" {
@@ -33,7 +35,7 @@ extern "C" {
 os_timer_t myTimer1;
 #define TIMER1 1000       //  1s for timer 1
 os_timer_t myTimer2;
-#define TIMER2 1000*5    // 60s for timer 2
+#define TIMER2 1000*20    // 60s for timer 2
 os_timer_t myTimer3;
 #define TIMER3 1000*60*15 //15mn for timer 3
 // boolean to activate timer events
@@ -50,15 +52,15 @@ void timerInit(os_timer_t *pTimerPointer, uint32_t milliSecondsValue, os_timer_f
 
 
 //Wifi config
-const char* ssid     = "***";
-const char* password = "***";
+const char* ssid     = WIFI_SSID;
+const char* password = WIFI_PASS;
 //Function declarations
 void wifiConnect(void);
 void webServerStart(void);
 void ClientAction (void);
 
 //Thingspeak config
-String myWriteAPIKey = "***";
+String myWriteAPIKey = TS_WRITE_KEY;
 //Function declarations
 void thingSpeakWrite (String, float, float, float, float, float, float, float, float);
 

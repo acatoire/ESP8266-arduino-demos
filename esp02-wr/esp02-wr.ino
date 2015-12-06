@@ -3,10 +3,16 @@
  */
  
  //https://learn.adafruit.com/adafruit-feather-huzzah-esp8266/using-arduino-ide
+
+
+ 
+//Include credential files
+#include "wifi_log.h"
+
 #include <ESP8266WiFi.h>
  
-const char* ssid     = "***";
-const char* password = "***";
+const char* ssid     = "WIFI_SSID";
+const char* password = "WIFI_PASS";
  
 const char* host = "www.adafruit.com";
  

@@ -2,8 +2,12 @@
 
 //http://www.arduinesp.com/wifiwebserver
 
-const char* ssid     = "***";
-const char* password = "***";
+//Include credential files
+#include "wifi_log.h"
+
+//Wifi config
+const char* ssid     = WIFI_SSID;
+const char* password = WIFI_PASS;
  
 int ledPin = 2; // GPIO2
 WiFiServer server(80);
