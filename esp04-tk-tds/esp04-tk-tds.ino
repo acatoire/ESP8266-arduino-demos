@@ -1,20 +1,18 @@
 
 /*
- *  Simple implementation of One wire DS18B20 and DST22 Sensor reading logged on Thingspeaks
- *  With DS18B20 temperature reading
- *
- *  Board detail : https://learn.adafruit.com/adafruit-feather-huzzah-esp8266/pinouts
- *  http://iot-playground.com/2-uncategorised/41-esp8266-ds18b20-temperature-sensor-arduino-ide
- *
- *  Timer
- *  http://www.switchdoc.com/2015/10/iot-esp8266-timer-tutorial-arduino-ide/
+ *  Simple implementation of 2 One wire DS18B20 Sensor reading logged on Thingspeaks
  *  
- *  si ereur avec __ieee754_sqrt
- *  https://github.com/esp8266/Arduino/issues/612
- *  https://files.gitter.im/esp8266/Arduino/Abqa/libm.a.tbz replace the one in
- *  C:\Users\axel\AppData\Local\Arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\1.20.0-26-gb404fb9\xtensa-lx106-elf\lib
+ *  This program simply wait for the nex sensor read, no timer, no fancy things
+ *
+ *  Developed from :
+ *    http://iot-playground.com/2-uncategorised/41-esp8266-ds18b20-temperature-sensor-arduino-ide
+ *  Use the librairies
+ *  - OneWire
+ *  - DallasTemperature
+ *  
  */
 
+//Librairies include
 #include <ESP8266WiFi.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -25,31 +23,34 @@
 //Wifi config
 const char* ssid     = "Wifi_du_9_av_Ginette";
 const char* password = "bender le chat de ginette";
-//Function declarations
+WiFiClient client; // Global wifi client
+//Wifi Function declarations
 void wifiConnect(void);
 void ClientAction (void);
 
 //Thingspeak config
 String myWriteAPIKey = "6LRLV1M9XFPYS0E8";
-//Function declarations
+//Thingspeak Function declarations
 void thingSpeakWrite (String, float, float, float, float, float, float, float, float);
                       
 //Sensors config
 #define ONE_WIRE_BUS 14  // One wire pin for DS18B20
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature DS18B20(&oneWire);
-//Function declarations
+//Sensors Function declarations
 void sensorRead(void);
 
+//Sensors reading frequency
+#define FREQ 1000*60*15 //15mn for slow monitoring
+//#define FREQ 1000*20 // 20s for test
 
-#define FREQ 1000*60*15
-
+//Temperature saved values
 float temp1;
 float temp2;
 
+// LED pin definition for HUZZAH board
 #define BLUE_LED  2 // GPIO2 also used by wifi chip
 #define RED_LED   0 // GPIO0
-WiFiClient client;
 
 
 /* void setup(void) 
@@ -84,29 +85,30 @@ void loop()
 {
   //Turn ON LED
   digitalWrite(RED_LED, LOW);
-    
+  //Read sensors values
   sensorRead();
-
   
   //Turn OFF LED
   digitalWrite(RED_LED, HIGH);
-  
+
+  //Sent data on Thingspeak.com
   thingSpeakWrite (   myWriteAPIKey,
                       temp1, temp2, NAN, NAN,
                       NAN, NAN, NAN, NAN);
 
+  //Write temp on serial link
   Serial.print("Temperature DS18B20 : ");
   Serial.print(temp1);
   Serial.print(" ");
   Serial.println(temp2);
   
-
+  //Wait before next measurment
+  //Thingspeak accepte one write every 15s max
   delay(FREQ);
 }
 
-
 /* void wifiConnect(void)
- *  Function 
+ *  Function to connect the board to the wifi
  *  
  *  Input  : None
  *  Output : None
@@ -128,17 +130,32 @@ void wifiConnect(void){
   Serial.println("WiFi connected");
 }
 
- 
+ /* void sensorRead(void)
+ *  Get the sensors value from One Wire bus
+ *  
+ *  Input  : None
+ *  Output : None
+*/
 void sensorRead(void) {
 
   //DS18B20 Reading
   DS18B20.requestTemperatures(); 
   temp1 = DS18B20.getTempCByIndex(0);
-  temp1 = round(temp1*10)/10;
+  temp1 = round(temp1*10)/10.0;        //Use 10.0 not 10 to stay in float
   temp2 = DS18B20.getTempCByIndex(1);
-  temp2 = round(temp2*10)/10;
+  temp2 = round(temp2*10)/10.0;
 }
 
+
+ /* void thingSpeakWrite (String APIKey,
+                          float field1, float field2, float field3, float field4,
+                          float field5, float field6, float field7, float field8)
+ *  Save value on thingspeak.com servers
+ *  
+ *  Input  : APIKey the write api key for the desired chanel
+ *           fieldx value to save, use NAN if the field isn't use.
+ *  Output : None
+*/
 void thingSpeakWrite (String APIKey,
                       float field1, float field2, float field3, float field4,
                       float field5, float field6, float field7, float field8)
