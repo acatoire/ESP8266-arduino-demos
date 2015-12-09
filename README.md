@@ -4,7 +4,7 @@ Batch of demo code for the ESP8266 chip with arduino IDE
 # Needed material and librairies
 Tested on adafruit HUZZAH : https://learn.adafruit.com/adafruit-feather-huzzah-esp8266/pinouts
 With ARDUINO 1.6.6 with esp8266 1.6.5 package. 
-I actually have issue with version 2.0.0
+I actually have issue with version 2.0.0 (warning: espcomm_sync failed, error: espcomm_open failed)
 
 # Naming convention
  *  espXX - Base number

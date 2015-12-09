@@ -49,6 +49,7 @@ void sensorRead(void);
 //#define FREQ 1000*20 // 20s for test
 
 //Temperature saved values
+float temp0;
 float temp1;
 float temp2;
 
@@ -97,14 +98,16 @@ void loop()
 
   //Sent data on Thingspeak.com
   thingSpeakWrite (   myWriteAPIKey,
-                      temp1, temp2, NAN, NAN,
+                      temp0, temp2 ,temp1, NAN,
                       NAN, NAN, NAN, NAN);
 
   //Write temp on serial link
   Serial.print("Temperature DS18B20 : ");
-  Serial.print(temp1);
+  Serial.print(temp0);
   Serial.print(" ");
-  Serial.println(temp2);
+  Serial.print(temp2);
+  Serial.print(" ");
+  Serial.println(temp1);
   
   //Wait before next measurment
   //Thingspeak accepte one write every 15s max
@@ -143,11 +146,30 @@ void wifiConnect(void){
 void sensorRead(void) {
 
   //DS18B20 Reading
+  float temp;
   DS18B20.requestTemperatures(); 
-  temp1 = DS18B20.getTempCByIndex(0);
-  temp1 = round(temp1*10)/10.0;        //Use 10.0 not 10 to stay in float
-  temp2 = DS18B20.getTempCByIndex(1);
-  temp2 = round(temp2*10)/10.0;
+  temp = DS18B20.getTempCByIndex(0);
+  temp0 = round(temp*10)/10.0;        //Use 10.0 not 10 to stay in float
+  if(temp == 85.0 or temp <= -127.0 or temp >= 127.0){
+    temp0 = NAN;
+    Serial.println("Invalid Temp0");
+  }
+  
+  temp = DS18B20.getTempCByIndex(1);
+  temp1 = round(temp*10)/10.0;
+  if(temp == 85.0 or temp <= -127.0 or temp >= 127.0){
+    temp1 = NAN;
+    Serial.println("Invalid Temp1");
+  }
+  
+  temp = DS18B20.getTempCByIndex(2);
+  temp2 = round(temp*10)/10.0;
+  if(temp == 85.0 or temp <= -127.0 or temp >= 127.0){
+    temp2 = NAN;
+    Serial.println("Invalid Temp2");
+  }
+  
+  
 }
 
 
