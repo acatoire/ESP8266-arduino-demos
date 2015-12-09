@@ -259,7 +259,7 @@ void eepromWrite(void)
   EEPROM.end();
 }
 
-/* void eepromWrite(void)
+/* void eepromRead(void)
  *  Function 
  *  
  *  Input  : 
