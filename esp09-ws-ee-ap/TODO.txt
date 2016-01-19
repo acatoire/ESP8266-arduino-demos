@@ -1,0 +1,2 @@
+Creat a sample code that boot on private wifi network to configure the real wifi conexion.
+A switch allow to start in this mode

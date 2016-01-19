@@ -1,0 +1,1 @@
+https://github.com/esp8266/Arduino/blob/342c4ae6fb847bfc787f80b89a2bb888d942dc32/libraries/ESP8266WiFi/examples/NTPClient/NTPClient.ino

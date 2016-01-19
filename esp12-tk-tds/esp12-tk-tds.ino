@@ -1,0 +1,292 @@
+
+/*
+ *  Implementation of multiple One wire DS18B20 Sensor logged on Thingspeaks
+ *  Sensors Address are saved on eeprom to keep the same thingspeaks channel
+ *  
+ *  This program simply wait for the next sensor read, no timer, no fancy things
+ *
+ *  Developed from :
+ *    http://iot-playground.com/2-uncategorised/41-esp8266-ds18b20-temperature-sensor-arduino-ide
+ *  Use the librairies
+ *  - OneWire
+ *  - DallasTemperature
+ *  
+ *  ToDo
+ *  - Implement eeprom save
+ *  - Implement new sensor detection
+ *  - Implement sensor link to channel on thingspeak
+ *  
+ */
+
+//Include credential files
+#include "wifi_log.h"
+#include "thingspeak_log.h"
+
+//Librairies include
+#include <ESP8266WiFi.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+//Serial Config
+#define BAUDRATE 115200  // Serial link speed
+
+//Wifi config
+const char* ssid     = WIFI_SSID;
+const char* password = WIFI_PASS;
+WiFiClient client; // Global wifi client
+//Wifi Function declarations
+void wifiConnect(void);
+void ClientAction (void);
+
+//Thingspeak config
+String myWriteAPIKey = TS_WRITE_KEY;
+//Thingspeak Function declarations
+void thingSpeakWrite (String, float, float, float, float, float, float, float, float);
+                      
+//Sensors config
+#define ONE_WIRE_BUS 14  // One wire pin for DS18B20
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature DS18B20(&oneWire);
+//Sensors Function declarations
+void sensorRead(void);
+uint8_t nbSensors = 0;
+uint8_t deviceAddressPt[8][8];
+
+//Sensors reading frequency
+//#define FREQ 1000*60*15 //15mn for slow monitoring
+#define FREQ 1000*20 // 20s for test
+
+//Temperature saved values
+float temp0;
+float temp1;
+float temp2;
+
+// LED pin definition for HUZZAH board
+#define BLUE_LED  2 // GPIO2 also used by wifi chip
+#define RED_LED   0 // GPIO0
+
+
+/* void setup(void) 
+ *  Setup software run only once
+ *  
+*/
+void setup() {
+  
+  //Start Serial
+  Serial.begin(BAUDRATE);
+  Serial.println("");
+  Serial.println("--------------------------");
+  Serial.println("   ESP8266 Temp Test");
+  Serial.println("--------------------------");
+
+  //Init leds
+  pinMode(BLUE_LED, OUTPUT);
+  pinMode(RED_LED, OUTPUT);
+  digitalWrite(BLUE_LED, HIGH);
+  digitalWrite(RED_LED, HIGH);
+
+  //Init wifi
+  wifiConnect();
+ 
+}
+
+/* void loop(void) 
+ *  Main program automatically loaded
+ *  
+*/
+void loop() 
+{
+  byte i;
+  //Turn ON LED
+  digitalWrite(RED_LED, LOW);
+  //Read sensors values
+  sensorRead();
+  
+  //Turn OFF LED
+  digitalWrite(RED_LED, HIGH);
+
+  //Sent data on Thingspeak.com
+  thingSpeakWrite (   myWriteAPIKey,
+                      temp0, temp2 ,temp1, NAN,
+                      NAN, NAN, NAN, NAN);
+                      
+  
+
+  for (i=0;i<8;i++)
+  {
+    
+    if(DS18B20.getAddress(deviceAddressPt[i], i))
+      {
+        nbSensors++;
+        Serial.print("Sensors");
+        Serial.print( i );
+        Serial.print(" : ");
+        Serial.print(deviceAddressPt[i][0],HEX);
+        Serial.print("-");
+        Serial.print(deviceAddressPt[i][1],HEX);
+        Serial.print("-");
+        Serial.print(deviceAddressPt[i][2],HEX);
+        Serial.print("-");
+        Serial.print(deviceAddressPt[i][3],HEX);
+        Serial.print("-");
+        Serial.print(deviceAddressPt[i][4],HEX);
+        Serial.print("-");
+        Serial.print(deviceAddressPt[i][5],HEX);
+        Serial.print("-");
+        Serial.print(deviceAddressPt[i][6],HEX);
+        Serial.print("-");
+        Serial.print(deviceAddressPt[i][7],HEX);
+        Serial.print(" : ");
+        Serial.println( DS18B20.getTempC(deviceAddressPt[i]) );
+      }
+  }
+  
+  
+  //Write temp on serial link
+  Serial.print("Temperature DS18B20 : ");
+  Serial.print(temp0);
+  Serial.print(" ");
+  Serial.print(temp1);
+  Serial.print(" ");
+  Serial.println(temp2);
+  
+  //Wait before next measurment
+  //Thingspeak accepte one write every 15s max
+  delay(FREQ);
+}
+
+/* void wifiConnect(void)
+ *  Function to connect the board to the wifi
+ *  
+ *  Input  : None
+ *  Output : None
+*/
+void wifiConnect(void){
+  // Connect to WiFi network
+  Serial.println();
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+ 
+  WiFi.begin(ssid, password);
+ 
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+    }
+  Serial.println("");
+  Serial.println("WiFi connected");
+}
+
+ /* void sensorRead(void)
+ *  Get the sensors value from One Wire bus
+ *  
+ *  Input  : None
+ *  Output : None
+*/
+void sensorRead(void) {
+
+  //DS18B20 Reading
+  float temp;
+  DS18B20.requestTemperatures(); 
+  temp = DS18B20.getTempCByIndex(0);
+  temp0 = round(temp*10)/10.0;        //Use 10.0 not 10 to stay in float
+  if(temp == 85.0 or temp <= -127.0 or temp >= 127.0){
+    temp0 = NAN;
+    Serial.println("Invalid Temp0");
+  }
+  
+  temp = DS18B20.getTempCByIndex(1);
+  temp1 = round(temp*10)/10.0;
+  if(temp == 85.0 or temp <= -127.0 or temp >= 127.0){
+    temp1 = NAN;
+    Serial.println("Invalid Temp1");
+  }
+  
+  temp = DS18B20.getTempCByIndex(2);
+  temp2 = round(temp*10)/10.0;
+  if(temp == 85.0 or temp <= -127.0 or temp >= 127.0){
+    temp2 = NAN;
+    Serial.println("Invalid Temp2");
+  }
+  
+  
+}
+
+
+ /* void thingSpeakWrite (String APIKey,
+                          float field1, float field2, float field3, float field4,
+                          float field5, float field6, float field7, float field8)
+ *  Save value on thingspeak.com servers
+ *  
+ *  Input  : APIKey the write api key for the desired chanel
+ *           fieldx value to save, use NAN if the field isn't use.
+ *  Output : None
+*/
+void thingSpeakWrite (String APIKey,
+                      float field1, float field2, float field3, float field4,
+                      float field5, float field6, float field7, float field8)
+{
+  
+  const char* thingspeakServer = "api.thingspeak.com";
+
+  if (client.connect(thingspeakServer,80)) {  //   "184.106.153.149" or api.thingspeak.com
+    String postStr = APIKey;
+    if (!isnan(field1))
+    {
+      postStr +="&field1=";
+      postStr += String(field1);
+    }
+    if (!isnan(field2))
+    {
+      postStr +="&field2=";
+      postStr += String(field2);
+    }
+    if (!isnan(field3))
+    {
+      postStr +="&field3=";
+      postStr += String(field3);
+    }
+    if (!isnan(field4))
+    {
+      postStr +="&field4=";
+      postStr += String(field4);
+    }
+    if (!isnan(field5))
+    {
+      postStr +="&field5=";
+      postStr += String(field5);
+    }
+    if (!isnan(field6))
+    {
+      postStr +="&field6=";
+      postStr += String(field6);
+    }
+    if (!isnan(field7))
+    {
+      postStr +="&field7=";
+      postStr += String(field7);
+    }
+    if (!isnan(field8))
+    {
+      postStr +="&field8=";
+      postStr += String(field8);
+    }
+    postStr += "\r\n\r\n";
+ 
+     client.print("POST /update HTTP/1.1\n");
+     client.print("Host: api.thingspeak.com\n");
+     client.print("Connection: close\n");
+     client.print("X-THINGSPEAKAPIKEY: "+myWriteAPIKey+"\n");
+     client.print("Content-Type: application/x-www-form-urlencoded\n");
+     client.print("Content-Length: ");
+     client.print(postStr.length());
+     client.print("\n\n");
+     client.print(postStr);
+ 
+  }
+  client.stop();
+}
+
+
+
