@@ -15,6 +15,7 @@ I actually have issue with version 2.0.0 (warning: espcomm_sync failed, error: e
  *  tds   - read temperature on a DS18B20 sensor
  *  tm    - use of os_timer capability
  *  ee    - use of EEPROM
+ 
 
 # Possibles bugs
 IF you encounter an error with __ieee754_sqrt :
@@ -28,3 +29,13 @@ and replace the one in
 # serial link issue
 The use of the pin 15 apparently block the programmation of the firmware.
 The pin 15 have to be grounded or not used for programmation.
+
+# Libraries
+For DHT sensors, need : 
+* https://github.com/adafruit/Adafruit_Sensor
+* https://github.com/adafruit/DHT-sensor-library
+
+For dallas DS18B20
+*OneWire	
+*DallasTemperature	
+
