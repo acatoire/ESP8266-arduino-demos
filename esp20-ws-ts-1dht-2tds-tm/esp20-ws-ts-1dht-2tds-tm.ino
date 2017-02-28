@@ -15,7 +15,7 @@
  *  C:\Users\axel\AppData\Local\Arduino15\packages\esp8266\tools\xtensa-lx106-elf-gcc\1.20.0-26-gb404fb9\xtensa-lx106-elf\lib
  */
 
-//Include credential files
+// Include credential files
 #include "wifi_log.h"
 #include "thingspeak_log.h"
 
@@ -24,8 +24,27 @@
 #include <DallasTemperature.h>
 #include <DHT.h>
 
-//Serial Config
+extern "C" {
+#include "user_interface.h"
+}
+
+// Serial Config
 #define BAUDRATE 115200  // Serial link speed
+
+// Timer elements
+os_timer_t myTimer1;
+#define TIMER1 1000       //  1s for timer 1
+os_timer_t myTimer2;
+#define TIMER2 1000*60    // 60s for timer 2
+// boolean to activate timer events
+bool tick1Occured;
+bool tick2Occured;
+// Need to have a global address for the timer id
+const char tickId1=1;
+const char tickId2=2;
+// Functions declaration
+void timerCallback(void *);
+void timerInit(os_timer_t *pTimerPointer, uint32_t milliSecondsValue, os_timer_func_t *pFunction, char *pId);
 
 //Wifi config
 const char* ssid     = WIFI_SSID;
@@ -78,6 +97,12 @@ void setup() {
   Serial.println("   ESP8266 Temp Test");
   Serial.println("--------------------------");
 
+  // Init and start timers
+  tick1Occured = false;
+  tick2Occured = false;
+  timerInit(&myTimer1, TIMER1,  timerCallback, (char*)&tickId1);
+  timerInit(&myTimer2, TIMER2,  timerCallback, (char*)&tickId2);
+
   //Init leds
   pinMode(BLUE_LED, OUTPUT);
   pinMode(RED_LED, OUTPUT);
@@ -98,29 +123,99 @@ void setup() {
 */
 void loop() 
 {
-  //Toggle LED
-  digitalWrite(RED_LED, !digitalRead(RED_LED));
-    
-  sensorRead();
+
+  //Check if a timer occured to execute the action
+  //Timer 1 action
+  if (tick1Occured == true){
+    tick1Occured = false;
+
+    //Toggle LED
+    digitalWrite(RED_LED, !digitalRead(RED_LED));
+  }
   
-  thingSpeakWrite (   myWriteAPIKey,
-                      temp1, temp2, 0xFFFFFFFF, 0xFFFFFFFF,
-                      0xFFFFFFFF, 0xFFFFFFFF, tempx, hum);
+  //Timer 2 action
+  if (tick2Occured == true){
+    tick2Occured = false;
 
-  Serial.print("Temperature DS18B20_1 : ");
-  Serial.println(temp1);
-  Serial.print("Temperature DS18B20_2 : ");
-  Serial.println(temp2);
+    sensorRead();
+  
+    thingSpeakWrite (   myWriteAPIKey,
+                        hum, tempx, temp1, temp2,
+                        0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+  
+    Serial.print("Temperature DS18B20_1 : ");
+    Serial.println(temp1);
+    Serial.print("Temperature DS18B20_2 : ");
+    Serial.println(temp2);
+  
+    Serial.print("Temperature DHT22 : ");
+    Serial.println(tempx);
+    Serial.print("Humidity: ");
+    Serial.println(hum);
+                        
+    //Toggle LED
+    digitalWrite(BLUE_LED, !digitalRead(BLUE_LED));
+  }
 
-  Serial.print("Temperature DHT22 : ");
-  Serial.println(tempx);
-  Serial.print("Humidity: ");
-  Serial.println(hum);
-                      
-  //delay(1000*60*15);
-  delay(30*1000); //For test
+  //Give the time to the os to do his things
+  yield();  // or delay(0);
+
 }
 
+/* void timerCallback(void *pArg)
+ *  Function 
+ *  
+ *  Input  : 
+ *  Output :
+*/
+void timerCallback(void *pArg) {
+  
+  char timerId = *(char*)pArg; //Value inside (*) of pArg, casted into a char pointer
+  
+  switch (timerId){
+    case 1 :
+      tick1Occured = true;
+      break;
+    case 2 :
+      tick2Occured = true;
+      break;
+    default :
+      //Nothings to do
+      break;
+  }
+} 
+
+/* timerInit(os_timer_t *pTimerPointer, uint32_t milliSecondsValue, os_timer_func_t *pFunction, char *pId) 
+ *  Function 
+ *  
+ *  Input  : 
+ *  Output :
+*/
+void timerInit(os_timer_t *pTimerPointer, uint32_t milliSecondsValue, os_timer_func_t *pFunction, char *pId) {
+   /*
+    Maximum 7 timers
+    os_timer_setfn - Define a function to be called when the timer fires
+    void os_timer_setfn(os_timer_t *pTimer, os_timer_func_t *pFunction, void *pArg)
+    
+    Define the callback function that will be called when the timer reaches zero. 
+    The pTimer parameters is a pointer to the timer control structure.
+    The pFunction parameters is a pointer to the callback function.
+    The pArg parameter is a value that will be passed into the called back function. 
+    The callback function should have the signature: void (*functionName)(void *pArg)
+    The pArg parameter is the value registered with the callback function.
+  */
+  os_timer_setfn(pTimerPointer, pFunction, pId);
+  /*
+    os_timer_arm -  Enable a millisecond granularity timer.
+    void os_timer_arm( os_timer_t *pTimer, uint32_t milliseconds, bool repeat)
+  
+    Arm a timer such that is starts ticking and fires when the clock reaches zero.
+    The pTimer parameter is a pointed to a timer control structure.
+    The milliseconds parameter is the duration of the timer measured in milliseconds. 
+    The repeat parameter is whether or not the timer will restart once it has reached zero.
+  */
+  os_timer_arm(pTimerPointer, milliSecondsValue, true);
+} 
 
 /* void wifiConnect(void)
  *  Function 
